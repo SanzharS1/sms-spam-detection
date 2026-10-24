@@ -1,0 +1,61 @@
+digraph SMS_Use_Cases {
+  // Pinned positions keep the public, owner and restricted goals readable.
+  // Coordinates are in inches; render with Graphviz's neato engine.
+  graph [layout=neato, overlap=true, notranslate=true, bgcolor="white", pad="0.35",
+    splines=polyline, fontname="Arial", fontsize=20,
+    label="SMS Spam Detection - Use Case Diagram\nProposed final-system behavior", labelloc=t];
+  node [fontname="Arial", fontsize=14, color="#334155", penwidth=1.3];
+  edge [fontname="Arial", fontsize=11, color="#475569", penwidth=1.1];
+
+  // UML actors use classifier notation: a rectangle with the actor keyword.
+  user [pos="0,9.5!", pin=true, shape=box, style=filled, fillcolor="#e8f1fc", label="«actor»\nSMS user"];
+  owner [pos="0,4.7!", pin=true, shape=box, style=filled, fillcolor="#e8f1fc", label="«actor»\nAuthorized\nrecord owner"];
+  reviewer [pos="14,8!", pin=true, shape=box, style=filled, fillcolor="#f0eafa", label="«actor»\nFeedback\nreviewer"];
+  maintainer [pos="14,4.7!", pin=true, shape=box, style=filled, fillcolor="#f0eafa", label="«actor»\nModel / evaluation\nmaintainer"];
+  operator [pos="14,1.4!", pin=true, shape=box, style=filled, fillcolor="#f0eafa", label="«actor»\nSystem operator"];
+
+  subgraph cluster_system {
+    label="SMS Spam Detection Application\nIncludes restricted offline model operations";
+    labelloc=t; fontsize=16; color="#64748b"; penwidth=1.4; margin=24;
+    node [shape=ellipse, style=filled, fillcolor="#f8fafc", margin="0.20,0.12"];
+    // Invisible corner anchors reserve boundary/header space in neato.
+    boundary_top [pos="1.3,12.4!", pin=true, shape=point, width=0, height=0, style=invis, label=""];
+    boundary_bottom [pos="12.5,0!", pin=true, shape=point, width=0, height=0, style=invis, label=""];
+    uc01 [pos="3.5,11!", pin=true, label="UC-01\nCheck one SMS"];
+    uc02 [pos="7,10.25!", pin=true, label="UC-02\nReceive classification\nand explanation"];
+    uc03 [pos="3.5,9.5!", pin=true, label="UC-03\nCheck a batch file"];
+    uc04 [pos="3.5,8!", pin=true, label="UC-04\nChoose interface\nlanguage"];
+    uc05 [pos="3.5,6.2!", pin=true, label="UC-05\nView own history"];
+    uc06 [pos="3.5,4.7!", pin=true, label="UC-06\nView own statistics"];
+    uc07 [pos="3.5,3.2!", pin=true, label="UC-07\nReport incorrect\nresult"];
+    uc08 [pos="7,3.2!", pin=true, label="UC-08\nContribute SMS\nwith consent"];
+    uc09 [pos="3.5,1.5!", pin=true, label="UC-09\nRequest deletion\nor withdrawal"];
+    uc10 [pos="10.5,8!", pin=true, label="UC-10\nReview feedback", fillcolor="#f6f2fc"];
+    uc11 [pos="10.5,5.8!", pin=true, label="UC-11\nTrain and evaluate\na candidate offline", fillcolor="#f6f2fc"];
+    uc12 [pos="10.5,3.6!", pin=true, label="UC-12\nPromote or reject\na candidate", fillcolor="#f6f2fc"];
+    uc13 [pos="10.5,1.4!", pin=true, label="UC-13\nRoll back\nactive model", fillcolor="#f6f2fc"];
+
+    // Include points from the base to the required reusable behavior.
+    uc01 -> uc02 [style=dashed, arrowhead=open, label="«include»"];
+    uc03 -> uc02 [style=dashed, arrowhead=open, label="«include»"];
+    // Extension point: before feedback submission; guard: separate consent.
+    uc08 -> uc07 [style=dashed, arrowhead=open, label="«extend»\n[separate\nconsent]"];
+  }
+
+  // Plain associations express participation, not control or data flow.
+  user -> uc01 [dir=none];
+  user -> uc03 [dir=none];
+  user -> uc04 [dir=none];
+  owner -> uc05 [dir=none];
+  owner -> uc06 [dir=none];
+  owner -> uc07 [dir=none];
+  owner -> uc09 [dir=none];
+  uc10 -> reviewer [dir=none];
+  uc11 -> maintainer [dir=none];
+  uc12 -> maintainer [dir=none];
+  uc13 -> maintainer [dir=none];
+  // Operational recovery support does not grant independent model approval.
+  uc13 -> operator [dir=none];
+  // Specialization: the owner inherits public SMS-user participation.
+  owner -> user [arrowhead=empty, arrowsize=1.2];
+}
