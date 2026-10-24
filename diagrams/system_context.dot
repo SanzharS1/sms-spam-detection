@@ -1,0 +1,29 @@
+digraph SystemContext {
+  graph [rankdir=LR, bgcolor="white", pad=0.35, nodesep=0.65, ranksep=1.0,
+         fontname="Arial", fontsize=18, labelloc=t,
+         label="System Context\nProposed multilingual SMS checking system"];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=13,
+        margin="0.18,0.14", color="#607080", fillcolor="#F1F5F9"];
+  edge [fontname="Arial", fontsize=11, color="#475569", arrowsize=0.75];
+
+  public_user [label="Public SMS checker user\nManually selected messages only"];
+  owner [label="Authorized history / session owner\nMay also be the checker user"];
+  reviewer [label="Authorized feedback reviewer"];
+  maintainer [label="Model / evaluation maintainer"];
+  operator [label="System operator"];
+  provider [shape=folder, fillcolor="#FFF7E6", label="Permitted corpus provider\nOffline data interface"];
+
+  subgraph cluster_system {
+    label="System boundary"; fontname="Arial"; fontsize=13;
+    style="rounded"; color="#245680"; penwidth=1.7;
+    app [fillcolor="#DBEAFE", color="#245680", penwidth=1.5,
+         label="Multilingual SMS Spam Detection\nWeb Application\nPublic checking + restricted offline lifecycle"];
+  }
+
+  public_user -> app [dir=both, label="Submit SMS / batch;\nreceive predictions and limitations"];
+  owner -> app [dir=both, label="Authorized history / statistics; error flags;\nseparately consented text contribution"];
+  provider -> app [style=dashed, color="#9A6700", label="Permitted corpora\nOffline intake only"];
+  app -> reviewer [dir=both, label="Restricted contribution review;\npermission / label decisions"];
+  app -> maintainer [dir=both, style=dashed, color="#245680", label="Offline training / evaluation evidence;\ncontrolled model promotion / rollback"];
+  app -> operator [dir=both, style=dotted, color="#6D28D9", label="Configuration, deployment, health\nand recovery; no public control access"];
+}

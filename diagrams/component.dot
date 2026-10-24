@@ -1,0 +1,80 @@
+digraph Components {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.4, ranksep=0.65,
+         compound=true, newrank=true, fontname="Arial", fontsize=18, labelloc=t,
+         label="Draft Component Architecture\nLogical responsibilities; proposed deployment and contracts"];
+  node [shape=component, style=filled, fontname="Arial", fontsize=14,
+        margin="0.15,0.12", color="#64748B", fillcolor="white"];
+  edge [fontname="Arial", fontsize=12, color="#475569", arrowsize=0.7];
+
+  subgraph cluster_browser {
+    label="Browser boundary"; style="rounded,filled"; color="#93C5FD"; fillcolor="#EFF6FF";
+    ui [label="React / TypeScript UI\nInput, results, history and feedback\nEN/RU/KZ; consent and errors"];
+  }
+
+  subgraph cluster_service {
+    label="Runtime service — logical modules in one FastAPI application";
+    style="rounded,filled"; color="#86A8C3"; fillcolor="#F8FAFC";
+    api [label="FastAPI REST API\nValidate, authorize, bound and orchestrate\nResponse / error contracts"];
+    prep [label="Versioned preprocessing\nUnicode, masking and span mapping\nTransient SMS only"];
+    infer [label="Versioned inference / explanations\nFitted features and active model\nLabel, score, threshold, coverage"];
+    history [label="History / statistics\nOwner-scoped metadata only"];
+    feedback [label="Metadata-only feedback\nReview state; no auto-training"];
+    api -> prep [dir=both, label="SMS / row result"];
+    prep -> infer [dir=both, label="Input + spans / prediction"];
+    api -> history [label="Scoped metadata"];
+    api -> feedback [label="Error flag / correction"];
+  }
+
+  subgraph cluster_metadata {
+    label="Permitted metadata storage"; labelloc=b; style="rounded,filled"; color="#6AAE9B"; fillcolor="#F0FDFA";
+    pg [shape=cylinder, label="PostgreSQL metadata\nHistory, feedback, version references\nNo raw SMS or text explanations"];
+  }
+
+  subgraph cluster_restricted {
+    label="Restricted contributions — consent / retention";
+    style="rounded,filled"; color="#D6A14A"; fillcolor="#FFFBEB";
+    gate [label="Consented text intake / review\nPermission, privacy and label gates"];
+    contributions [shape=cylinder, label="Restricted contribution storage\nQuarantined / reviewed text\nSeparate permission evidence"];
+    gate -> contributions [label="Permitted intake / review"];
+  }
+
+  subgraph cluster_offline {
+    label="Offline data / ML — no public request execution";
+    style="rounded,filled"; color="#9DA8D2"; fillcolor="#F5F3FF";
+    data [label="Data preparation / release\nProvenance, privacy, annotation\nGroups, splits and versions"];
+    corpus [shape=cylinder, label="Restricted versioned corpus\nConfirmed labels / frozen splits\nProtected held-out access"];
+    training [label="Offline training / evaluation\nTF-IDF; Naive Bayes / Logistic Regression\nTraining-only tuning; language evidence"];
+    data -> corpus [style=dashed, color="#245680", label="Admitted release"];
+    corpus -> training [style=dashed, color="#245680", label="Permitted run inputs"];
+  }
+
+  subgraph cluster_models {
+    label="Restricted model lifecycle / artifacts"; labelloc=b;
+    style="rounded,filled"; color="#AE98C7"; fillcolor="#FAF5FF";
+    promotion [label="Authorized model activation\nTrust / compatibility review\nPromote, reject or roll back"];
+    artifacts [shape=cylinder, label="Trusted versioned artifact store\nCandidates / approved immutable versions\nManifests, checksums, active selection"];
+    promotion -> artifacts [style=dashed, color="#245680", label="Select / roll back\nMechanism pending"];
+  }
+
+  operations [shape=component, fillcolor="#EDE9FE",
+              label="Restricted operational controls\nRoles, config, readiness and recovery\nDocker / CI planned"];
+
+  ui -> api [dir=both, label="HTTPS requests / JSON\nResults, versions, errors, limits"];
+  history -> pg [dir=both, label="Scoped reads / writes"];
+  feedback -> pg [dir=both, label="Report metadata"];
+  api -> gate [label="Separately consented text\nPermission check"];
+  contributions -> data [style=dashed, color="#245680", label="Reviewed, permitted,\nlabel-confirmed release"];
+  training -> artifacts [headport=e, style=dashed, color="#245680", label="Candidate + manifest\nNot automatically active"];
+  training -> promotion [headport=w, style=dashed, color="#245680", label="Evaluation evidence"];
+  artifacts -> infer [tailport=n, headport=s, style=dashed, color="#245680", label="Approved compatible artifact\nVerified loading", constraint=false];
+  promotion -> pg [headport=e, style=dashed, color="#245680", label="Version / activation audit", constraint=false];
+  operations -> gate [headport=w, style=dotted, color="#6D28D9", label="Authorized review", constraint=false];
+  operations -> promotion [style=dotted, color="#6D28D9", label="Authorized decision", constraint=false];
+  operations -> api [style=dotted, color="#6D28D9", label="Config / readiness", constraint=false];
+
+  { rank=same; api; operations; }
+  { rank=same; prep; history; feedback; gate; }
+  { rank=same; infer; pg; contributions; }
+  { rank=same; artifacts; promotion; data; }
+  { rank=same; corpus; training; }
+}
