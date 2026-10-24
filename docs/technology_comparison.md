@@ -1,8 +1,8 @@
-# Technology Comparison: Backend and Data Storage
+# Technology Comparison: Backend, Data Storage and Frontend
 
 ## 1. Purpose and evaluation basis
 
-This comparison examines backend frameworks and data storage technologies for the multilingual SMS application defined in the [Project Proposal](project_proposal.md), particularly Sections 8–18. It evaluates how the alternatives support API contracts, Python inference, privacy, data integrity and maintainable deployment.
+This comparison examines backend frameworks, data storage technologies and frontend alternatives for the multilingual SMS application defined in the [Project Proposal](project_proposal.md), particularly Sections 8–18. It evaluates how the alternatives support API contracts, Python inference, privacy, data integrity, multilingual interaction and maintainable deployment.
 
 The intended system accepts manually submitted English, Russian and Kazakh SMS, returns versioned predictions and explanations, and supports batch checking, private history, statistics and reviewed feedback. The [existing-system comparison](existing_systems.md), especially Section 6, reinforces the need to distinguish these workflows and to assess privacy by data flow rather than by technology name.
 
@@ -86,9 +86,87 @@ SQLite remains reasonable for an isolated low-concurrency prototype. Its transac
 
 MongoDB remains reasonable if future requirements center on heterogeneous event documents. Schema validation, atomic operations and supported multi-document transactions provide substantial capabilities. [M1], [M2] For the present relationships, embedding can duplicate model information, while separate references move consistency work into application logic. Transaction topology and security configuration also remain operational responsibilities. [M3], [M4], [M7] These trade-offs reduce its present justification without implying that document databases are inherently insecure or non-transactional.
 
-## 4. Architectural implications
+## 4. Frontend alternatives
 
-### 4.1. UI, API and model boundary
+### 4.1. Purpose, candidates and evidence interpretation
+
+The frontend comparison concerns the browser workflows in Proposal Sections 9–10: single-message checking, probability and explanation display, batch results, language selection, authorized history/statistics and incorrect-result feedback. Beknur leads their interface implementation; the inference, storage and feedback-processing responsibilities remain with the owners defined in Proposal Section 8.
+
+The candidates are **React + TypeScript**, using typed components and explicit state composition; **Vue + TypeScript**, using single-file components, reactive bindings and TypeScript tooling; and **Angular + TypeScript**, using typed templates with framework-provided forms and HTTP packages. Each can support the proposed browser interface. They offer sufficiently different composition and tooling choices to make the comparison useful. [UI-R1], [UI-R2], [UI-V1], [UI-V2], [UI-A1], [UI-A4], [UI-A5]
+
+The matrix evaluates equivalent application responsibilities rather than matching package counts. **Core** means a documented library/framework facility; **additional package** means a separately installed dependency, including official companion packages; **project work** means behavior the team must implement and verify. Statements about fit and learning effort are engineering judgments based on these responsibilities, not measured productivity. CSS, native browser controls and testing tools are available across the candidates. No browser performance, bundle-size or usability ranking is established.
+
+### 4.2. Comparative matrix
+
+| Criterion | React + TypeScript | Vue + TypeScript | Angular + TypeScript |
+|---|---|---|---|
+| Internationalization: EN/RU/KZ | Additional package: `react-i18next` exposes translation functions and runtime language changes. Reviewed resources, fallback policy and preservation of current work are project work. [UI-I1] | Additional package: Vue I18n provides translation resources and reactive runtime locale changes. The team supplies reviewed translations and state-preservation behavior. [UI-I2] | Official companion package: `@angular/localize` supports localized builds/deployment. For runtime switching comparable to the other candidates, an additional library such as ngx-translate exposes `TranslateService.use()`. Translations, fallback and state preservation still need project work. [UI-A2], [UI-A3], [UI-I3] |
+| TypeScript and runtime API validation | TSX and installed React type declarations support typed props/state and static checking. API data still needs runtime checks before becoming a trusted result. [UI-R1], [UI-T1] | TypeScript support covers component code/templates; `vue-tsc` checks single-file components separately from transpilation. Runtime response checking remains project work. [UI-V1], [UI-T1] | Template checking complements TypeScript. `HttpClient` response generics do not validate received JSON; runtime contract checks remain necessary. [UI-A1], [UI-A5] |
+| Responsive design | Components render HTML styled with CSS. Flexible layouts, breakpoints and long-text behavior require implementation and device/viewport checks. [UI-R3], [UI-B1] | Component templates use the same CSS layout mechanisms; single-file organization does not itself ensure mobile usability. [UI-V1], [UI-B1] | Templates need the same responsive CSS and viewport checks. Forms/HTTP tooling provides no automatic layout acceptance. [UI-A4], [UI-B1] |
+| Accessibility | DOM props support ARIA attributes and focus/keyboard events. Semantic controls, labels, contrast and status announcements require deliberate design and testing. [UI-R3] | Official guidance covers semantic forms, labels and focus management. Following that guidance and testing the finished UI remain team responsibilities. [UI-V3] | Official guidance supports native controls and ARIA bindings; optional CDK utilities assist interaction patterns. Neither framework nor component package establishes accessibility compliance. [UI-A6] |
+| SMS input and prediction presentation | Component state can represent editable text and result views. Validation messages and submission behavior are project code. [UI-R2] | `v-model` connects native text controls to reactive state. SMS validation and result composition remain project code. [UI-V2] | Reactive Forms provides control/group state and validators. The SMS-specific form and result components require configuration and application code. [UI-A4] |
+| Probability and confidence display | Typed result props/state can drive distinct label, score and confidence views. The API contract must define their interpretation. [UI-R1], [UI-R2] | Typed component data and bindings can display those fields. Formatting and uncertainty wording require application rules. [UI-V1], [UI-V2] | Typed templates can present the same fields. Neither template checking nor form validation establishes calibrated model confidence. [UI-A1] |
+| Explanation highlights | Render validated text segments as ordinary children; avoid untrusted `dangerouslySetInnerHTML`. Feature attribution and offset mapping are project work. [UI-R3] | Use escaped interpolation inside segment elements; avoid `v-html` for submitted SMS. Model contributions and segment boundaries remain external contracts. [UI-V4] | Use text interpolation and validated segments; do not bypass security for message markup. Attribution and Unicode mapping require application logic. [UI-A8] |
+| Batch-file checking interface | A native file control and component state can present file selection and row results. Parsing, limits and batch-status handling require project code. [UI-B3], [UI-R2] | Native file selection and reactive form/result views support the same workflow. CSV decoding, invalid rows and server limits are not supplied by `v-model`. [UI-B3], [UI-V2] | Native file controls and application components support uploads/results. Reactive Forms does not provide a CSV parser or SMS batch classifier. [UI-B3], [UI-A4] |
+| History and statistics UI | State composition supports filters and result lists; API queries and statistics presentation require application code and an authorized data scope. [UI-R2], [UI-B2] | Typed components can present the same lists and summaries. Fetching, filtering and retention behavior remain application decisions. [UI-V1], [UI-B2] | Components and `HttpClient` can present queried metadata. Authorization and the meaning of summary values remain API/application responsibilities. [UI-A1], [UI-A5] |
+| Incorrect-result feedback | Form state can separate an error flag from optional text contribution. Consent, submission and confirmation states are project work. [UI-R2] | Form bindings support correction and consent controls. A submitted correction still needs server-side review. [UI-V2] | Reactive Forms supports correction controls and validation. It supplies neither consent policy nor verified-label/retraining behavior. [UI-A4] |
+| Privacy and data ownership | Component state can hold transient input, but persistence, telemetry and error reporting depend on application integrations. History ownership and retention follow Proposal Section 16. [UI-R2] | Escaped text rendering addresses injection, not retention or consent. Browser persistence and authorized history access still require the same project policy. [UI-V4] | Template security controls likewise do not establish privacy. Consent, logging, retention and authorized access remain application/API responsibilities under Proposal Section 16. [UI-A8] |
+| REST API integration | Browser Fetch can call FastAPI; a reusable API adapter must check HTTP status and validate payloads. React does not prescribe the transport layer. [UI-B2], [UI-T1] | Browser Fetch can serve the same contract; transport/error conventions must be agreed separately from component typing. [UI-B2], [UI-V1] | Official `HttpClient` provides HTTP methods and Observable responses. This reduces transport-tool selection but introduces subscription/error conventions to maintain. [UI-A5] |
+| Loading states and error handling | Component state can distinguish idle, submitting, success and failure. Fetch requires explicit HTTP-status checks; stale-result handling is project work. [UI-R2], [UI-B2] | Reactive bindings can display those states. HTTP errors, canceled requests and late responses need explicit application handling. [UI-V2], [UI-B2] | Forms and Observable responses support submission/error flows. The team must still prevent duplicate submissions and stale result display. [UI-A4], [UI-A5] |
+| Component testing | Additional package: React Testing Library provides user-oriented DOM queries. A compatible runner/environment and meaningful assertions must be configured separately. [UI-C1] | Official Vue Test Utils mounts components; the Vue testing guide discusses runner and browser-test options. Rendering and emitted-event checks require written tests. [UI-V5] | Angular documents an integrated CLI testing setup and component-testing guidance. Project tests must cover forms, services and rendered outcomes. [UI-A7] |
+| End-to-end testing | Additional browser tooling such as Playwright can exercise the rendered application through roles, inputs and assertions. API fixtures or an integrated service are required. [UI-E1] | The same Playwright workflow can exercise a Vue application. Choosing Vue does not supply the test scenarios or API environment. [UI-E1] | The same browser-driven checks can exercise Angular. They remain separate from framework unit tests and need a declared application environment. [UI-E1], [UI-A7] |
+| Maintainability and learning complexity | Explicit state composition suits separated screens, but the team must maintain consistent API, localization and testing conventions. Hooks/state design and package integration require learning. [UI-R2], [UI-I1], [UI-C1] | Template-oriented form bindings and TypeScript tooling offer a coherent alternative. Reactivity, component conventions and additional package compatibility require learning. [UI-V1], [UI-V2], [UI-I2] | Forms, HTTP and testing guidance reduce independent tool choices. The team must learn template, form and Observable conventions and maintain the selected localization packages. No comparative learning time is established. [UI-A1], [UI-A4], [UI-A5], [UI-A7], [UI-I3] |
+
+### 4.3. Advantages, limitations and recommended frontend
+
+**React + TypeScript is the recommended frontend**, consistent with the proposal and Beknur's assigned responsibility. Typed result components and explicit state transitions offer a suitable structure for the checker, explanation view, batch rows and consent interactions. [UI-R1], [UI-R2] A shared API adapter can keep HTTP/payload handling outside presentation components, while `react-i18next` and React Testing Library provide documented options for localization and user-oriented component checks. [UI-I1], [UI-C1] This composition fits the required workflows without requiring that API/storage follow a frontend-specific server framework.
+
+The decision rule is to establish a documented implementation route for every required workflow, then consider integration responsibilities and consistency with the proposed architecture. All three candidates provide suitable mechanisms when combined with application code and selected packages. The comparison therefore identifies no exclusive functional advantage for React. Retaining it is a conditional project choice: its component/state approach fits the bounded workflows and preserves the proposal's assigned interface responsibility, while the team accepts explicit localization, API-validation and test-tool integration. The evidence does not establish lower cost or effort than Vue or Angular; later implementation findings may justify revisiting the choice.
+
+Its principal cost is integration responsibility: React does not settle translation resources, request validation, asynchronous consistency or the test runner. Those conventions must be agreed and maintained rather than selected independently by each screen. The recommendation accepts this cost; it does not establish that React is faster, easier to learn or uniquely able to consume FastAPI. The official role assignment supports continuity, but is not evidence of prior React proficiency or a substitute for the technical comparison.
+
+**Vue + TypeScript is a credible alternative.** Its native form bindings and TypeScript-ready single-file components provide a direct way to organize input/result screens; Vue I18n and official testing utilities cover relevant extension points. [UI-V1], [UI-V2], [UI-I2], [UI-V5] The trade-offs are the need to learn Vue's reactive/component conventions, run the appropriate type checks and maintain the same application contracts. The present requirements reveal no missing Vue capability that disqualifies it. Changing the proposed frontend would require an agreed implementation/tooling change; no demonstrated project benefit currently justifies that change.
+
+**Angular + TypeScript is also technically suitable.** Framework-provided forms and HTTP packages and documented testing conventions are strengths where uniform structure across many forms/services is important. [UI-A4], [UI-A5], [UI-A7] These conventions require framework-specific knowledge while leaving SMS, privacy and explanation behavior to the application. Official locale-specific builds are one localization route; an additional package such as ngx-translate supports runtime language changes comparable to the React/Vue options. [UI-A2], [UI-A3], [UI-I3] Choosing between those routes entails deployment or dependency decisions. No measured learning disadvantage, performance deficit or inability to switch languages is established.
+
+### 4.4. Application contracts and implementation boundaries
+
+**Languages and state.** EN/RU/KZ interface labels correspond to locale identifiers `en`, `ru` and `kk`; `KZ` is the project's display shorthand for Kazakh, not the language code. This follows [Dataset Strategy Section 2](dataset_strategy.md#2-language-and-task-requirements). The team must supply reviewed translations for controls, validation, uncertainty and consent, define fallback behavior and preserve user work during language changes. Translated UI text does not establish classifier performance for that language. UI locale must remain separate from message-language metadata and model routing.
+
+**Typed and verified responses.** TypeScript annotations are erased during compilation. Neither an asserted result type nor Angular's typed HTTP generic establishes that the server returned the required fields. [UI-T1], [UI-A5] The proposed API adapter should validate label values, finite probability bounds, version identifiers, row identifiers and explanation structures before updating result state. It should distinguish transport, contract and user-input errors, associate results with the submitted input and suppress late responses for superseded submissions. These are proposed safeguards, not an implemented contract.
+
+**FastAPI integration.** All three alternatives can consume the same HTTP/JSON contract; no framework-specific FastAPI connector is required by this design. If UI and API have different origins, Sanzhar must configure permitted origins and any credential handling consistently with the selected session model. FastAPI documents explicit allowed origins and the limitations of wildcard settings for credentialed communication. [UI-H1] CORS configuration governs browser cross-origin access; it must not replace API authorization. Integration acceptance should cover the actual deployment origins, HTTP failures and invalid response bodies, not only successful mock requests.
+
+**Probability, confidence and explanations.** Display the model-estimated spam probability separately from its documented confidence indication; neither is a guarantee of safety or an individual-prediction accuracy percentage. Sanzhar's explanation contract must identify contributions and their relation to the displayed text. Beknur must render checked text segments rather than inject HTML, using the frameworks' ordinary text-rendering paths and respecting their security guidance. [UI-R3], [UI-V4], [UI-A8] Normalization, redaction, emoji and differing string-index conventions require an agreed Unicode/offset mapping; invalid mappings should yield an explicit unavailable explanation, not invented highlights. Dataset Strategy Sections 8–9 and 20 define the relevant preparation/inference boundary.
+
+**Accessible result interpretation.** Planned checks should verify that labels and influential fragments have textual meaning beyond color, and that loading, completion and error status messages are available to assistive technology without requiring focus changes. These concerns correspond to WCAG 2.2 criteria 1.4.1 and 4.1.3. [UI-W1] They apply equally to all candidates and complement keyboard, focus, contrast and responsive-layout checks. They are evaluation criteria to implement and verify, not a claim of WCAG conformance.
+
+**Batch, history and feedback.** A browser file input only selects files: even its `accept` attribute is a chooser hint rather than validation. Server-side validation remains necessary. [UI-B3] The project must define encoding, columns, size/row limits and a stable result-or-error for each admitted row. History/statistics views should request authorized metadata and distinguish predicted-spam counts from evaluated classifier quality. Raw SMS should not enter browser persistence, analytics or error reporting by default. A feedback flag must remain separate from optional, consented text contribution; the UI cannot approve labels, authorize its own access or trigger unrestricted retraining. These rules follow Proposal Sections 9 and 16 and the existing storage boundary.
+
+### 4.5. Traceability to requirements and later verification
+
+The table traces the decision to the published [Project Proposal](project_proposal.md). A separate FR/NFR specification is not yet available in the reviewed baseline, so identifier mapping remains pending. No requirement identifiers or acceptance thresholds are assumed here.
+
+| Proposal requirement basis | Consequence for frontend selection/design | Evidence required during implementation |
+|---|---|---|
+| Section 9, scenarios 1–2; Sections 13–14: single checking and faithful explanation | Typed result views, explicit request state, safe segment rendering and a common FastAPI contract | Component/contract checks for labels, scores, versions, malformed responses and Unicode highlights; integration checks under actual origin/session settings |
+| Section 9, scenario 3: batch results and validation errors | File selection and stable row/result presentation; decoding and server limits need a separate contract | Permitted test files with valid/invalid rows; reconciled outputs; file/row limit and failure checks |
+| Section 9, scenario 4; Section 15: multilingual interaction | Reviewed `en`/`ru`/`kk` resources and switching behavior, independent of model support | All-language scenario checks, missing-key/fallback checks and preservation of current work |
+| Section 9, scenarios 5–7; Section 16: history and feedback boundaries | Authorized metadata views and separate error-report/text-consent interactions | UI/API checks for access failures, correction submission and consent boundaries; storage/log inspection by the relevant owner |
+| Section 10: accessibility and usability | Semantic HTML, keyboard/focus behavior, textual alternatives to color and programmatically available status messages across candidates | Keyboard, status announcement, color-independent interpretation, contrast and narrow/wide-layout checks plus actual user observations |
+| Sections 10 and 18: maintainability and integrated verification | Shared API adapter, consistent state/localization conventions, component checks and browser E2E | Repeatable component runs and browser scenarios against declared mock or integrated API environments |
+
+React Testing Library offers DOM-focused component utilities; it is not itself a test runner. Vue documents component utilities and distinct runner/browser options, while Angular documents its CLI testing setup. [UI-C1], [UI-V5], [UI-A7] Playwright can drive the proposed public workflows at browser level across all candidates. [UI-E1] Mock API results can verify UI behavior but cannot establish trained-model quality or successful service integration. The checks in the table are planned evidence, not executed application tests or a replacement for the team's verification plan.
+
+### 4.6. Limitations and decisions to confirm
+
+The comparison uses official documentation rather than implemented candidate prototypes or observed team development. It establishes available mechanisms and a reasoned fit, not measured accessibility, development effort, runtime performance or commercial superiority. Versions and compatible localization/testing dependencies must be recorded when implementation begins; no exact runtime versions are selected here.
+
+Before implementation acceptance, agree the API schemas and response validation, explanation offsets, language-switch behavior, batch limits, session/access model, consent/retention policy and component/browser test environments. Real user findings may change priorities. A different frontend remains possible if documented requirements or implementation evidence justify it. Formal identifier mapping and peer review remain pending; working UI evidence belongs to subsequent implementation and evaluation.
+
+## 5. Architectural implications
+
+### 5.1. UI, API and model boundary
 
 The intended flow is React/TypeScript UI -> FastAPI validation and authorization -> version-compatible inference -> structured JSON result. Beknur leads the UI and agrees the contract with Sanzhar. The frontend should receive the label, score interpretation, threshold, model version and faithful explanation fields; single-message and batch schemas should define invalid-row behavior. This describes integration with the proposed frontend, not a comparison or implementation of frontend technologies.
 
@@ -96,7 +174,7 @@ Rafael leads training/evaluation, TF-IDF pipeline configuration and model versio
 
 The API should load a trusted, reviewed artifact with compatible dependencies and explicit label, preprocessing, threshold and explanation metadata. Serialized model files should remain in protected artifact storage or a controlled read-only deployment location; PostgreSQL should hold their identifiers, checksums and lifecycle metadata. Scikit-learn warns that pickle-based formats can execute code when loaded and that environment compatibility matters. [A1] Public clients must not upload arbitrary serialized models for loading. A vocabulary may also expose retained training fragments, so artifact publication requires privacy review.
 
-### 4.2. History, feedback and statistics
+### 5.2. History, feedback and statistics
 
 Sanzhar leads persistence, data schema, safe processing, masking and API authorization. Rafael leads history/statistics behavior, feedback and confirmed-feedback retraining; Beknur leads their screens and consent interactions. These boundaries preserve the official roles.
 
@@ -106,19 +184,21 @@ Metadata-only feedback may flag a result, but retaining text requires a distinct
 
 Statistics should aggregate authorized metadata. A count of predicted spam is a service statistic, not measured precision or recall. Classifier-quality metrics require the separate labeled evaluation procedure led by Rafael. Aggregate views must not expose another user's activity or small identifiable groups.
 
-### 4.3. Docker and deployment
+### 5.3. Docker and deployment
 
 Sanzhar leads Docker, CI, public deployment and API integration tests. The proposed deployment separates the API process, PostgreSQL and offline training responsibilities. API instances should not depend on private text stored in their writable container layer. PostgreSQL needs durable storage; model artifacts need controlled mounting or retrieval; credentials belong in deployment configuration rather than committed files. HTTPS, request/file bounds, rate limits, timeouts and resource limits remain required application/operation controls. [F3]
 
 Database migrations and model-compatibility checks should complete before serving requests. Health checks, restart behavior and recovery procedures must be defined. More API workers require measured CPU/RAM capacity, bounded database connections and compatible active-model versions. [F3] No hosting provider, capacity figure, deployment price or production-readiness claim is selected through this comparison.
 
-## 5. Conclusion and unresolved implementation decisions
+## 6. Conclusion and unresolved implementation decisions
 
 FastAPI and PostgreSQL are the preferred technologies because the project requires a documented Python inference API and integrity across related history, model and feedback records. Flask offers a credible smaller core, Django/DRF a broader resource-oriented framework, SQLite a simpler embedded deployment, and MongoDB a flexible document model. Their relative value depends on the actual contracts, workload and operational requirements.
 
 Before implementation acceptance, the component owners must agree the API schemas, session/owner authorization, consent and retention rules, database relationships, migration approach, artifact format/promotion procedure and workload targets.
 
-## 6. References
+The frontend comparison recommends React + TypeScript for the required multilingual input/result workflows and explicit API/UI separation, while retaining Vue + TypeScript and Angular + TypeScript as viable alternatives. Localization, runtime contract validation, faithful highlights, accessibility and privacy remain implementation and verification responsibilities under every candidate.
+
+## 7. References
 
 The following official documentation was consulted on 24 October 2026. Links using `stable` or `current` can change; implementation must record the actual dependency and database versions selected. Project-specific conclusions above are distinguished from documented framework/database capabilities.
 
@@ -159,6 +239,38 @@ The following official documentation was consulted on 24 October 2026. Links usi
 - **M7.** MongoDB. [Data consistency][M7]. Duplicated data and application-maintained references.
 - **A1.** Scikit-learn developers. [Model persistence][A1]. Artifact loading risks and environment compatibility.
 
+### Frontend frameworks, browser facilities and testing
+
+The following official framework/library and browser-platform documentation was consulted for the frontend comparison on 24 October 2026. It supports the cited mechanisms; the selection rationale and proposed application contracts are project-specific judgments.
+
+- **UI-R1.** React. [Using TypeScript][UI-R1]. Component props/state typing and TSX.
+- **UI-R2.** React. [Managing State][UI-R2]. State structure and component coordination.
+- **UI-R3.** React. [Common components][UI-R3]. DOM props, accessibility attributes, events and raw-HTML risks.
+- **UI-V1.** Vue. [Using Vue with TypeScript][UI-V1]. Single-file components, type checking and tooling.
+- **UI-V2.** Vue. [Form Input Bindings][UI-V2]. Native controls and reactive form state.
+- **UI-V3.** Vue. [Accessibility][UI-V3]. Semantic forms, labels and focus guidance.
+- **UI-V4.** Vue. [Security][UI-V4]. Text escaping and unsafe HTML injection.
+- **UI-V5.** Vue. [Testing][UI-V5]. Component utilities, runners and browser testing.
+- **UI-A1.** Angular. [Template type checking][UI-A1]. Template/type-checking configuration.
+- **UI-A2.** Angular. [Add the localize package][UI-A2]. Official companion package and localization setup.
+- **UI-A3.** Angular. [Deploy multiple locales][UI-A3]. Locale-specific application deployment.
+- **UI-A4.** Angular. [Reactive forms][UI-A4]. Form controls, groups and validation.
+- **UI-A5.** Angular. [Making HTTP requests][UI-A5]. HTTP methods, Observables and response-generic limitations.
+- **UI-A6.** Angular. [Accessibility][UI-A6]. Native elements, ARIA and optional CDK support.
+- **UI-A7.** Angular. [Unit testing][UI-A7]. CLI testing setup and component-testing guidance.
+- **UI-A8.** Angular. [Security][UI-A8]. Template trust boundaries and unsafe bypasses.
+- **UI-I1.** React-i18next. [useTranslation hook][UI-I1]. Translation functions and language changes.
+- **UI-I2.** Vue I18n. [Composition API][UI-I2]. Translation resources and locale state.
+- **UI-I3.** Ngx-translate. [TranslateService API: use][UI-I3]. Additional Angular localization library and runtime language changes.
+- **UI-H1.** FastAPI. [CORS (Cross-Origin Resource Sharing)][UI-H1]. Allowed origins and credential-related configuration.
+- **UI-W1.** W3C. [Web Content Accessibility Guidelines 2.2][UI-W1], criteria 1.4.1 and 4.1.3. Use of color and status-message accessibility.
+- **UI-T1.** TypeScript. [The Basics: Erased Types][UI-T1]. Static types and runtime behavior.
+- **UI-B1.** MDN Web Docs. [Responsive web design][UI-B1]. Flexible CSS layouts and media queries.
+- **UI-B2.** MDN Web Docs. [Using the Fetch API][UI-B2]. HTTP calls and explicit response-status checks.
+- **UI-B3.** MDN Web Docs. [File inputs][UI-B3]. File selection and validation limitations.
+- **UI-C1.** Testing Library. [React Testing Library][UI-C1]. User-oriented DOM tests and runner separation.
+- **UI-E1.** Playwright. [Writing tests][UI-E1]. Browser navigation, controls and assertions.
+
 [F1]: https://fastapi.tiangolo.com/features/
 [F2]: https://fastapi.tiangolo.com/async/
 [F3]: https://fastapi.tiangolo.com/deployment/concepts/
@@ -190,3 +302,30 @@ The following official documentation was consulted on 24 October 2026. Links usi
 [M6]: https://www.mongodb.com/docs/manual/data-modeling/
 [M7]: https://www.mongodb.com/docs/manual/data-modeling/data-consistency/
 [A1]: https://scikit-learn.org/stable/model_persistence.html
+[UI-R1]: https://react.dev/learn/typescript
+[UI-R2]: https://react.dev/learn/managing-state
+[UI-R3]: https://react.dev/reference/react-dom/components/common
+[UI-V1]: https://vuejs.org/guide/typescript/overview.html
+[UI-V2]: https://vuejs.org/guide/essentials/forms.html
+[UI-V3]: https://vuejs.org/guide/best-practices/accessibility.html
+[UI-V4]: https://vuejs.org/guide/best-practices/security.html
+[UI-V5]: https://vuejs.org/guide/scaling-up/testing.html
+[UI-A1]: https://angular.dev/tools/cli/template-typecheck
+[UI-A2]: https://angular.dev/guide/i18n/add-package
+[UI-A3]: https://angular.dev/guide/i18n/deploy
+[UI-A4]: https://angular.dev/guide/forms/reactive-forms
+[UI-A5]: https://angular.dev/guide/http/making-requests
+[UI-A6]: https://angular.dev/best-practices/a11y
+[UI-A7]: https://angular.dev/guide/testing
+[UI-A8]: https://angular.dev/best-practices/security
+[UI-I1]: https://react.i18next.com/latest/usetranslation-hook
+[UI-I2]: https://vue-i18n.intlify.dev/guide/advanced/composition
+[UI-I3]: https://ngx-translate.org/reference/translate-service-api/#use
+[UI-H1]: https://fastapi.tiangolo.com/tutorial/cors/
+[UI-W1]: https://www.w3.org/TR/WCAG22/
+[UI-T1]: https://www.typescriptlang.org/docs/handbook/2/basic-types.html#erased-types
+[UI-B1]: https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Responsive_Design
+[UI-B2]: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+[UI-B3]: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/file
+[UI-C1]: https://testing-library.com/docs/react-testing-library/intro/
+[UI-E1]: https://playwright.dev/docs/writing-tests
